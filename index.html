@@ -35,7 +35,7 @@
   .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--acc),var(--good)); width:0%; transition:.3s}
   .study-note{background:rgba(46,204,143,.08); border:1px solid rgba(46,204,143,.35); color:var(--good);
               border-radius:10px; padding:10px 14px; font-size:13.5px; margin-bottom:14px}
-  .q{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 16px 14px; margin-bottom:14px; animation:pop .25s; scroll-margin-top:70px}
+  .q{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 16px 14px; margin-bottom:14px; animation:pop .25s}
   @keyframes pop{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
   .q .num{font-size:12px; color:var(--acc); font-weight:700; letter-spacing:.6px}
   .q .bank{font-size:11px; color:var(--mut); border:1px solid var(--line); border-radius:10px; padding:1px 8px; margin-left:8px; vertical-align:1px}
@@ -426,10 +426,6 @@ function render(){
           if (q.a.length === 1 || q.a.every(i => s.picks[i] === 'good')) s.done = true;
           render();
           updateHud(items.length);
-          if (s.done){
-            const next = document.querySelector('#quiz .q:not(.answered)');
-            if (next) next.scrollIntoView({behavior:'smooth', block:'start'});
-          }
         });
       });
     }
