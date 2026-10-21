@@ -13,12 +13,17 @@
   *{box-sizing:border-box; margin:0; padding:0}
   body{background:var(--bg); color:var(--txt); font-family:"Segoe UI",system-ui,Arial,sans-serif; line-height:1.45}
   .wrap{max-width:880px; margin:0 auto; padding:18px 14px 80px}
-  header{ text-align:center; padding:18px 0 8px}
+  header{ text-align:center; padding:14px 0 6px}
   header h1{font-size:26px; letter-spacing:.3px}
   header h1 span{color:var(--acc)}
   header p{color:var(--mut); font-size:13.5px; margin-top:6px}
-  .hud{position:sticky; top:0; z-index:9; background:rgba(15,20,32,.92); backdrop-filter:blur(6px);
-       border-bottom:1px solid var(--line); margin:0 -14px 16px; padding:10px 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .hud{position:sticky; top:0; z-index:9; background:rgba(15,20,32,.94); backdrop-filter:blur(6px);
+       border-bottom:1px solid var(--line); margin:10px -14px 16px; padding:10px 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .viewbtn{background:var(--card2); border:1.5px solid var(--line); color:var(--mut); padding:8px 16px; border-radius:10px;
+       cursor:pointer; font-size:14px; font-weight:600; user-select:none; transition:.15s}
+  .viewbtn:hover{color:var(--txt)}
+  .viewbtn.on{background:var(--acc); border-color:var(--acc); color:#fff}
+  .viewbtn.quiz-on{background:var(--good); border-color:var(--good); color:#08130d}
   .tabs{display:flex; gap:6px; flex-wrap:wrap}
   .tab{background:var(--card2); border:1px solid var(--line); color:var(--mut); padding:6px 12px; border-radius:20px;
        cursor:pointer; font-size:13px; user-select:none; transition:.15s}
@@ -28,6 +33,8 @@
   .stat b{color:var(--gold)}
   .bar{height:6px; background:var(--card2); border-radius:3px; overflow:hidden; flex:1 1 120px; min-width:80px}
   .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--acc),var(--good)); width:0%; transition:.3s}
+  .study-note{background:rgba(46,204,143,.08); border:1px solid rgba(46,204,143,.35); color:var(--good);
+              border-radius:10px; padding:10px 14px; font-size:13.5px; margin-bottom:14px}
   .q{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 16px 14px; margin-bottom:14px; animation:pop .25s}
   @keyframes pop{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
   .q .num{font-size:12px; color:var(--acc); font-weight:700; letter-spacing:.6px}
@@ -35,10 +42,8 @@
   .q h3{font-size:16.5px; margin:8px 0 10px; font-weight:600}
   .note{font-size:12.5px; color:var(--gold); background:rgba(255,200,87,.08); border:1px dashed rgba(255,200,87,.4);
         border-radius:8px; padding:6px 10px; margin:8px 0}
-  .math{display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin:6px 0 4px}
-  .lbl{font-style:italic; font-weight:600}
   .mm{display:inline-grid; border-left:2px solid var(--txt); border-right:2px solid var(--txt);
-      border-radius:3px; overflow:hidden; margin:2px 6px}
+      border-radius:3px; overflow:hidden; margin:2px 6px; vertical-align:middle}
   .mm.det{border-left:1.5px solid var(--txt); border-right:1.5px solid var(--txt)}
   .mm div{padding:3px 12px; text-align:center; min-width:34px; border:1px solid rgba(255,255,255,.13); font-variant-numeric:tabular-nums}
   .vv{font-style:italic; font-weight:600; white-space:nowrap}
@@ -57,8 +62,8 @@
   .opt.dim{opacity:.55}
   .q .ex{display:none; margin-top:10px; font-size:13.5px; color:var(--mut); background:rgba(79,140,255,.07);
          border-left:3px solid var(--acc); border-radius:6px; padding:8px 12px}
-  .q.answered .ex{display:block}
-  .q.answered .opt{cursor:default}
+  .q.answered .ex, .q.study .ex{display:block}
+  .q.answered .opt, .q.study .opt{cursor:default}
   .res{position:fixed; inset:0; background:rgba(10,14,22,.9); display:none; align-items:center; justify-content:center; z-index:50; padding:16px}
   .res.show{display:flex}
   .res .box{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px; max-width:460px; width:100%; text-align:center}
@@ -81,18 +86,25 @@
 <div class="wrap">
   <header>
     <h1>MATEM · <span>Module 1</span> — Linear Algebra</h1>
-    <p>Determinants · Matrices · Cramer's rule · Vectors — 74 questions, 3 banks. Pick an answer; the correct one is highlighted and explained.</p>
+    <p>Determinants · Matrices · Cramer's rule · Vectors — 74 questions, 3 banks.
+    Сначала выучи вопросы с ответами, потом проверяй себя в куизе.</p>
   </header>
 
   <div class="hud">
-    <div class="tabs" id="tabs"></div>
-    <div class="bar"><i id="prog"></i></div>
-    <div class="stat">Score: <b id="score">0</b> / <span id="total">0</span></div>
+    <div class="viewbtn on" id="btnStudy" onclick="setView('study')">📖 Вопросы с ответами</div>
+    <div class="viewbtn" id="btnQuiz" onclick="setView('quiz')">✏️ Куиз</div>
+    <div class="tabs" id="tabs" style="display:none"></div>
+    <div class="bar" id="barWrap" style="display:none"><i id="prog"></i></div>
+    <div class="stat" id="statWrap" style="display:none">Score: <b id="score">0</b> / <span id="total">0</span></div>
   </div>
+
+  <div id="studyNote" class="study-note">📗 <b>Режим подготовки:</b> правильные варианты выделены зелёным, под каждым вопросом — решение.
+  Чтобы проверить себя — нажми «✏️ Куиз».</div>
 
   <div id="quiz"></div>
 
-  <footer>Source: «MATEM 1 MODULE ENGLISH» question bank · answers verified by direct computation</footer>
+  <footer>Source: «MATEM 1 MODULE ENGLISH» question bank · answers verified by direct computation<br>
+  Правило экзамена: 5 вариантов → 1 ответ · 6 вариантов → 2 ответа · 8 вариантов → 3 ответа</footer>
 </div>
 
 <div class="res" id="res">
@@ -106,13 +118,12 @@
 </div>
 
 <script>
-// ---------- helpers to render math ----------
+// ---------- math render helpers ----------
 function mm(rows, det){
   let h = '<span class="mm' + (det ? ' det' : '') + '" style="grid-template-columns:repeat(' + rows[0].length + ',auto)">';
   for (const r of rows) for (const c of r) h += '<div>' + c + '</div>';
   return h + '</span>';
 }
-function v(x){ return '<span class="vv">( ' + x + ' )</span>';}
 function va(name){ return '<span class="arrow">' + name + '</span>';}
 function frac(a,b){ return '<span class="frac"><span class="top">' + a + '</span><span class="bot">' + b + '</span></span>';}
 function sq(x){ return '<span class="sqrt"><i>' + x + '</i></span>';}
@@ -128,10 +139,10 @@ const B1 = [
 {t:'Calculate the determinant', m:mm([['−2',1,1],[6,3,2],[4,'−2','−2']],1),
  o:['0','−2','1','4','−1'], a:[0], ex:'−2·(−6+4) − 1·(−12−8) + 1·(−12−12) = 4 + 20 − 24 = <b>0</b>.'},
 {t:'Calculate the determinant', m:mm([[1,0,3],[4,2,'−5'],[0,0,1]],1),
- o:['2','29','1','0','−2'], a:[0], ex:'Upper triangular-ish: 1·(2·1 − (−5)·0) − 0 + 3·(4·0 − 2·0) = <b>2</b>.'},
+ o:['2','29','1','0','−2'], a:[0], ex:'1·(2·1 − (−5)·0) − 0 + 3·(4·0 − 2·0) = <b>2</b>.'},
 {t:'If we substitute the position of two rows or columns of the determinant …',
  o:['The sign of the determinant changes to the opposite.','The value of the determinant is doubled.','The value of the determinant is zero.','The value of the determinant does not change.','The value of the determinant is equal to 1'],
- a:[0], ex:'Swapping two rows (or columns) <b>reverses the sign</b> of the determinant — a basic property of determinants.'},
+ a:[0], ex:'Swapping two rows (or columns) <b>reverses the sign</b> of the determinant — a basic property.'},
 {t:'Find the unit (identity) matrix:',
  o:[mm([[1,0],[0,1]]), mm([[1,0],[1,0]]), mm([[0,1],[1,0]]), mm([[0,0],[0,0]]), mm([[0,1],[0,1]])],
  a:[0], ex:'The unit matrix has 1 on the main diagonal and 0 elsewhere: <b>I = [[1,0],[0,1]]</b>.'},
@@ -149,24 +160,24 @@ const B1 = [
  a:[0], ex:'(1×2)·(2×1) = 1·(−10) + 2·24 = −10 + 48 = <b>38</b>.'},
 {t:'Find the product of the matrices: ' + mm([['−1',3]]) + ' · ' + mm([['−1',2,3]]),
  o:['No solution', mm([[0,'−1'],[0,'−2']]), mm([['−1','−2']]), mm([['−11',4],[ '−7','34']]), mm([['−30',5],[0,0]])],
- a:[0], ex:'The first matrix is 1×2, the second is 1×3 (or 3×1) — inner dimensions do not match, so the product <b>does not exist</b>.'},
+ a:[0], ex:'Inner dimensions do not match (1×2 and 1×3) → the product <b>does not exist</b>.'},
 {t:'Find the product of the matrices A·B, where A = ' + mm([[1,2],[1,1]]) + ', B = ' + mm([[2,'−1'],[2,'−1']]),
  o:[mm([[6,'−3'],[4,'−2']]), mm([[4,6],[ '−2','−3']]), mm([['−2',4],[ '−3',6]]), mm([['−2',4],[ '−3',6]]), mm([['−3',6],[ '−2',4]])],
  a:[0], ex:'A·B = [[1·2+2·2, 1·(−1)+2·(−1)], [1·2+1·2, 1·(−1)+1·(−1)]] = <b>[[6, −3], [4, −2]]</b>.'},
-{t:'A = ' + mm([[2,4],[ '−3','−2']]) + '. Find the minor M<sub>21</sub> (of element a<sub>21</sub>).',
+{t:'A = ' + mm([[2,4],[ '−3','−2']]) + '. Find the minor M<sub>21</sub>.',
  o:['4','0','−4','8','−8'], a:[0], ex:'Delete row 2 and column 1 → M<sub>21</sub> = |4| = <b>4</b>.'},
-{t:'A = ' + mm([[2,4],[ '−3','−2']]) + '. Find the minor M<sub>22</sub> (of element a<sub>22</sub>).',
+{t:'A = ' + mm([[2,4],[ '−3','−2']]) + '. Find the minor M<sub>22</sub>.',
  o:['2','−2','4','0','−3'], a:[0], ex:'Delete row 2 and column 2 → M<sub>22</sub> = |2| = <b>2</b>.'},
 {t:'A = ' + mm([[2,4],[ '−3','−2']]) + '. Find the algebraic complement A<sub>21</sub>.',
  o:['−4','−2','2','−3','4'], a:[0], ex:'A<sub>21</sub> = (−1)<sup>2+1</sup>·M<sub>21</sub> = −1·4 = <b>−4</b>.'},
-{t:'' + mm([['−2',1,1],[6,3,2],[4,'−2','−2']],1) + ' — find the algebraic complement A<sub>23</sub>.',
- o:['0','1','−8','8','2'], a:[0], ex:'A<sub>23</sub> = (−1)<sup>2+3</sup>·M<sub>23</sub> = −|' + '−2 1; 4 −2| = −(4 − 4) = <b>0</b>.'},
-{t: mm([['−2',1,1],[6,3,2],[4,'−2','−2']],1) + ' — find the minor M<sub>33</sub>.',
- o:['−12','12','8','−8','0'], a:[0], ex:'Delete row 3 and column 3: M<sub>33</sub> = (−2)·3 − 1·6 = −6 − 6 = <b>−12</b>.'},
+{t:mm([['−2',1,1],[6,3,2],[4,'−2','−2']],1) + ' — find the algebraic complement A<sub>23</sub>.',
+ o:['0','1','−8','8','2'], a:[0], ex:'A<sub>23</sub> = (−1)<sup>2+3</sup>·M<sub>23</sub> = −(4 − 4) = <b>0</b>.'},
+{t:mm([['−2',1,1],[6,3,2],[4,'−2','−2']],1) + ' — find the minor M<sub>33</sub>.',
+ o:['−12','12','8','−8','0'], a:[0], ex:'M<sub>33</sub> = |−2 1; 6 3| = (−2)·3 − 1·6 = −6 − 6 = <b>−12</b>.'},
 {t:'Write the algebraic complement of element a<sub>23</sub> in the determinant ' + mm([[1,2,3],[5,6,0],[ '−1',4,7]],1),
  o:['−' + mm([[1,2],[ '−1',4]],1), mm([[1,2],[ '−1',4]],1), mm([[1,3],[5,0]],1), mm([[1,3],[ '−1',7]],1), mm([[2,3],[6,0]],1)],
- a:[0], ex:'A<sub>23</sub> = (−1)<sup>2+3</sup>·M<sub>23</sub> = <b>−|1 2; −1 4|</b> (M<sub>23</sub> = 4+2 = 6, so A<sub>23</sub> = −6).'},
-{t:'Formula of the inverse matrix (for a 2×2 matrix, A<sub>ij</sub> — algebraic complements):',
+ a:[0], ex:'A<sub>23</sub> = (−1)<sup>2+3</sup>·M<sub>23</sub> = <b>−|1 2; −1 4|</b> (M<sub>23</sub> = 6, so A<sub>23</sub> = −6).'},
+{t:'Formula of the inverse matrix (2×2, A<sub>ij</sub> — algebraic complements):',
  o:['A<sup>−1</sup> = ' + frac('1','ΔA') + '·' + mm([[ 'A<sub>11</sub>', 'A<sub>21</sub>'],[ 'A<sub>12</sub>', 'A<sub>22</sub>']]),
     'A<sup>−1</sup> = ΔA·' + mm([[ 'A<sub>11</sub>', 'A<sub>21</sub>'],[ 'A<sub>12</sub>', 'A<sub>22</sub>']]),
     'A<sup>−1</sup> = ' + frac('1','ΔA') + '·' + mm([[ 'A<sub>22</sub>', 'A<sub>12</sub>'],[ 'A<sub>21</sub>', 'A<sub>11</sub>']]),
@@ -175,149 +186,149 @@ const B1 = [
  a:[0], ex:'A<sup>−1</sup> = (1/ΔA)·adj(A), where adj(A) is the <b>transposed</b> matrix of algebraic complements: [[A₁₁, A₂₁], [A₁₂, A₂₂]].'},
 {t:'When is the inverse matrix not found?',
  o:['If the determinant is zero','If the determinant is not zero','If the determinant is equal to one','If the determinant is any number','When finding the inverse matrix, the determinant is not needed'],
- a:[0], ex:'The inverse matrix exists if and only if <b>ΔA ≠ 0</b>. If ΔA = 0 the matrix is singular and has no inverse.'},
+ a:[0], ex:'The inverse matrix exists iff <b>ΔA ≠ 0</b>. If ΔA = 0 the matrix is singular.'},
 {t:'A = ' + mm([[1,3,'−5'],[0,2,0],[0,4,0]]) + '. Calculate the inverse matrix.',
  o:['No inverse matrix found', frac('1','ΔA') + '·' + mm([[1,3,'−5'],[0,2,0],[0,4,0]]), mm([[1,3,'−5'],[0,2,0],[0,4,0]]), mm([[1,0,0],[3,2,4],[ '−5',0,0]]), '−' + mm([[1,3,'−5'],[0,2,0],[0,4,0]])],
- a:[0], ex:'ΔA = 0 (row 3 = 2·row 2, rows are linearly dependent) → <b>the inverse matrix does not exist</b>.'},
+ a:[0], ex:'ΔA = 0 (row 3 = 2·row 2) → <b>the inverse matrix does not exist</b>.'},
 {t:'' + mm([['a₁x + b₁y = c₁'],['a₂x + b₂y = c₂']]) + ' — find the determinant of the system Δ.',
  o:[mm([[ 'a₁','b₁'],['a₂','b₂']],1), mm([['a₂','b₂'],['a₁','b₁']],1), mm([['a₁','b₂'],['a₂','b₁']],1), mm([['c₁','b₁'],['c₂','b₂']],1), mm([['a₁','c₁'],['a₂','c₂']],1)],
- a:[0], ex:'The main determinant of the system is built from the <b>coefficients of the unknowns</b>: Δ = |a₁ b₁; a₂ b₂|.'},
-{t:"The system of linear equations must be solved by Cramer's rule: " + mm([['2x₁ + 3x₂ = 1'],['x₁ + 5x₂ = 18']]) + '. Find the solution (x₁; x₂).',
- note:'Original exam text had the system 2x₁+3x₂=13, x₁+5x₂=4, whose solution (53/7; −5/7) matches none of the options — the RHS was corrected to the only variant consistent with the answer choices.',
+ a:[0], ex:'Δ is built from the <b>coefficients of the unknowns</b>: Δ = |a₁ b₁; a₂ b₂|.'},
+{t:"The system must be solved by Cramer's rule: " + mm([['2x₁ + 3x₂ = 1'],['x₁ + 5x₂ = 18']]) + '. Find (x₁; x₂).',
+ note:'Original exam text had 2x₁+3x₂=13, x₁+5x₂=4 — its solution (53/7; −5/7) matches no option, so the RHS was corrected to the only variant consistent with the choices.',
  o:['(−7; 5)','(7; −5)','(7; 5)','(−7; −5)','(5; 7)'],
- a:[0], ex:'Δ = 2·5 − 3·1 = 7; Δx₁ = 1·5 − 3·18 = −49; Δx₂ = 2·18 − 1·1 = 35. x₁ = −49/7 = −7, x₂ = 35/7 = 5 → <b>(−7; 5)</b>.'},
-{t:'Find the determinant of the system of equations ' + mm([['3x₁ + x₂ = 4'],['2x₁ + 4x₂ = 1']]),
+ a:[0], ex:'Δ = 7, Δx₁ = 1·5 − 3·18 = −49, Δx₂ = 2·18 − 1·1 = 35 → x₁ = −7, x₂ = 5 → <b>(−7; 5)</b>.'},
+{t:'Find the determinant of the system ' + mm([['3x₁ + x₂ = 4'],['2x₁ + 4x₂ = 1']]),
  o:['10','0','5','−5','15'], a:[0], ex:'Δ = 3·4 − 1·2 = 12 − 2 = <b>10</b>.'},
-{t:'' + mm([['3x₁ + x₂ = 4'],['2x₁ + 4x₂ = 1']]) + ' — find Δx₁ (replace the 1st column with the free terms).',
- o:['15','0','5','10','−5'], a:[0], ex:'Δx₁ = |4 1; 1 4| = 4·4 − 1·1 = <b>15</b>.'},
-{t:'Find the solution of the system of equations ' + mm([['3x₁ + x₂ = 4'],['2x₁ + 4x₂ = 1']]),
+{t:mm([['3x₁ + x₂ = 4'],['2x₁ + 4x₂ = 1']]) + ' — find Δx₁ (1st column replaced by free terms).',
+ o:['15','0','5','10','−5'], a:[0], ex:'Δx₁ = |4 1; 1 4| = 16 − 1 = <b>15</b>.'},
+{t:'Find the solution of the system ' + mm([['3x₁ + x₂ = 4'],['2x₁ + 4x₂ = 1']]),
  o:['(1.5; −0.5)','(1; −5)','(−1.5; −2)','(5; 1)','(15; 0)'],
- a:[0], ex:'Δ = 10, Δx₁ = 15, Δx₂ = |3 4; 2 1| = 3 − 8 = −5. x₁ = 15/10 = 1.5, x₂ = −5/10 = −0.5 → <b>(1.5; −0.5)</b>.'},
-{t:'Find the determinant of the system of equations ' + mm([['5x − y − z = 0'],['x + 2y + 3z = 14'],['4x + 3y + 2z = 16']]),
+ a:[0], ex:'Δ = 10, Δx₁ = 15, Δx₂ = |3 4; 2 1| = −5 → x₁ = 1.5, x₂ = −0.5 → <b>(1.5; −0.5)</b>.'},
+{t:'Find the determinant of the system ' + mm([['5x − y − z = 0'],['x + 2y + 3z = 14'],['4x + 3y + 2z = 16']]),
  o:['−30','0','−5','10','15'], a:[0], ex:'Δ = 5·(4−9) + 1·(2−12) − 1·(3−8) = −25 − 10 + 5 = <b>−30</b>.'},
 {t:'Points A(1; 3; −5), B(−2; 0; 4) are given. Find the vector ' + va('AB'),
  o:['(−3; −3; 9)','(−1; −2; −1)','(12; −3; −2)','(1; 2; 1)','(3; 3; −9)'],
  a:[0], ex:'' + va('AB') + ' = B − A = (−2−1; 0−3; 4+5) = <b>(−3; −3; 9)</b>.'},
 {t:'Find the complanar (coplanarity) condition of vectors.',
- o:[va('a') + '×' + va('b') + '·' + va('c') + ' = 0', va('a') + '·' + va('b') + ' = 0', va('a') + '×' + va('b') + ' = −(' + va('b') + '×' + va('c') + ')', va('a') + '×' + va('b') + '·' + va('c') + ' = 1', va('a') + '×' + va('b') + ' = 1'],
- a:[0], ex:'Three vectors are coplanar if and only if their <b>scalar triple product is zero</b>: (a×b)·c = 0.'},
+ o:[va('a') + '×' + va('b') + '·' + va('c') + ' = 0', va('a') + '·' + va('b') + ' = 0', va('a') + '×' + va('b') + ' = −(' + va('b') + '×' + va('a') + ')', va('a') + '×' + va('b') + '·' + va('c') + ' = 1', va('a') + '×' + va('b') + ' = 1'],
+ a:[0], ex:'Three vectors are coplanar iff their <b>scalar triple product is zero</b>: (a×b)·c = 0.'},
 {t:'Find the perpendicular condition of the vectors.',
  o:[va('a') + '·' + va('b') + ' = 0', va('a') + '×' + va('b') + '·' + va('c') + ' = 0', va('a') + '×' + va('b') + ' = −(' + va('b') + '×' + va('a') + ')', va('a') + '×' + va('b') + '·' + va('c') + ' = 1', va('a') + '×' + va('b') + ' = 1'],
- a:[0], ex:'Vectors are perpendicular if and only if their <b>scalar product equals zero</b>: a·b = 0.'},
-{t:va('a') + ' = (2; 1; −2), ' + va('b') + ' = (0; 1; 0) — find the scalar product of the vectors.',
+ a:[0], ex:'Vectors are perpendicular iff <b>a·b = 0</b>.'},
+{t:va('a') + ' = (2; 1; −2), ' + va('b') + ' = (0; 1; 0) — find the scalar product.',
  o:['1','0','2','−3','4'], a:[0], ex:'a·b = 2·0 + 1·1 + (−2)·0 = <b>1</b>.'},
 {t:'Specify the formula for the length of the vector ' + va('a'),
  o:[va('a') + ' = ' + sq('a<sub>x</sub>² + a<sub>y</sub>² + a<sub>z</sub>²'), va('a') + ' = ' + sq('a<sub>x</sub> + a<sub>y</sub> + a<sub>z</sub>'), va('a') + ' = ' + sq('a<sub>x</sub>² − a<sub>y</sub>² − a<sub>z</sub>²'), va('a') + ' = ' + sq('a<sub>x</sub>² + a<sub>y</sub>²'), va('a') + ' = ' + sq('a<sub>x</sub> + a<sub>y</sub>')],
- a:[0], ex:'The length (modulus) of a vector is the square root of the <b>sum of the squares</b> of its coordinates.'},
+ a:[0], ex:'Length = square root of the <b>sum of the squares</b> of the coordinates.'},
 {t:va('a') + ' = 2i + 5j − 6k — find the length of the vector.',
- o:[sq('65'), sq('13'), sq('1'), sq('−7'), '0'], a:[0], ex:'|a| = √(2² + 5² + (−6)²) = √(4 + 25 + 36) = <b>√65</b>.'},
+ o:[sq('65'), sq('13'), sq('1'), sq('−7'), '0'], a:[0], ex:'|a| = √(4 + 25 + 36) = <b>√65</b>.'},
 {t:va('a') + ' = (2; 1; −2), ' + va('b') + ' = (0; 1; 0) — the difference of the two vectors is equal to:',
  o:['(2; 0; −2)','(4; 3; −4)','(2; 2; −2)','(4; −3; −4)','(5; 0; 2)'],
  a:[0], ex:'a − b = (2−0; 1−1; −2−0) = <b>(2; 0; −2)</b>.'},
 {t:'The modulus of the vector product of two vectors is equal to:',
- o:[va('a') + '·|' + va('b') + '|·sin φ', va('a') + '·|' + va('b') + '|', va('a') + '·|' + va('b') + '|·cos φ', '|' + va('b') + '|·cos φ', va('a') + '·|' + va('b') + '|·cos φ'],
- a:[0], ex:'|a×b| = <b>|a|·|b|·sin φ</b>, where φ is the angle between the vectors (area of the parallelogram).'},
+ o:['|' + va('a') + '|·|' + va('b') + '|·sin φ', '|' + va('a') + '|·|' + va('b') + '|', '|' + va('a') + '|·|' + va('b') + '|·cos φ', '|' + va('b') + '|·cos φ', '|' + va('a') + '|·|' + va('b') + '|·cos φ'],
+ a:[0], ex:'|a×b| = <b>|a|·|b|·sin φ</b> (area of the parallelogram).'},
 {t:va('a') + ' = i − 2j + 3k — find the length of the vector.',
- o:[sq('14'), sq('65'), sq('1'), sq('−7'), '0'], a:[0], ex:'|a| = √(1² + (−2)² + 3²) = √(1 + 4 + 9) = <b>√14</b>.'},
-{t:va('a') + ' = (4; 1; −2), ' + va('b') + ' = (0; 1; 0) — find the scalar product of the vectors.',
+ o:[sq('14'), sq('65'), sq('1'), sq('−7'), '0'], a:[0], ex:'|a| = √(1 + 4 + 9) = <b>√14</b>.'},
+{t:va('a') + ' = (4; 1; −2), ' + va('b') + ' = (0; 1; 0) — find the scalar product.',
  o:['1','0','2','−3','4'], a:[0], ex:'a·b = 4·0 + 1·1 + (−2)·0 = <b>1</b>.'},
-{t:va('a') + ' = (4; 3; −2), ' + va('b') + ' = (0; 1; 0) — find the scalar product of the vectors.',
+{t:va('a') + ' = (4; 3; −2), ' + va('b') + ' = (0; 1; 0) — find the scalar product.',
  o:['3','0','2','−3','4'], a:[0], ex:'a·b = 4·0 + 3·1 + (−2)·0 = <b>3</b>.'},
 {t:'Collinear vectors are …',
  o:['Vectors lying along one or parallel lines','Equal vectors','Zero vectors','Complanar vectors','Directed segment'],
- a:[0], ex:'Collinear (parallel) vectors lie on <b>one line or on parallel lines</b>: a = λb.'},
+ a:[0], ex:'Collinear vectors lie on <b>one line or on parallel lines</b>: a = λb.'},
 {t:va('a') + ' = (3; 4; −5) — find the modulus of the vector.',
  o:[sq('50'), '25', '12', '30', '5'], a:[0], ex:'|a| = √(9 + 16 + 25) = <b>√50</b> = 5√2.'},
-{t:va('a') + ' = (0; 2; −3), ' + va('b') + ' = (1; 4; 0) — find the vector product of the vectors.',
+{t:va('a') + ' = (0; 2; −3), ' + va('b') + ' = (1; 4; 0) — find the vector product.',
  o:['(12; −3; −2)','(−1; −2; −1)','(1; 2; 1)','(−3; −3; 9)','(3; 3; −9)'],
  a:[0], ex:'a×b = (2·0−(−3)·4; (−3)·1−0·0; 0·4−2·1) = <b>(12; −3; −2)</b>.'},
 {t:va('a') + ' = 2i + 3j − 2k — find the length of the vector.',
  o:[sq('17'), sq('14'), sq('1'), sq('65'), '0'], a:[0], ex:'|a| = √(4 + 9 + 4) = <b>√17</b>.'},
-{t:va('a') + ' = (2; 3; −2), ' + va('b') + ' = (1; −1; 0) — find the scalar product of the vectors.',
- o:['−1','0','2','−3','4'], a:[0], ex:'a·b = 2·1 + 3·(−1) + (−2)·0 = 2 − 3 = <b>−1</b>.'},
-{t:'Points A(1; 3; −5), B(−2; 0; 4) are given. Find the length of the vector ' + va('AB'),
- o:[sq('99'), '9', '0', sq('15'), '99'], a:[0], ex:'|' + va('AB') + '| = √((−3)² + (−3)² + 9²) = √(9 + 9 + 81) = <b>√99</b> = 3√11.'}
+{t:va('a') + ' = (2; 3; −2), ' + va('b') + ' = (1; −1; 0) — find the scalar product.',
+ o:['−1','0','2','−3','4'], a:[0], ex:'a·b = 2·1 + 3·(−1) + (−2)·0 = <b>−1</b>.'},
+{t:'Points A(1; 3; −5), B(−2; 0; 4) are given. Find the length of ' + va('AB'),
+ o:[sq('99'), '9', '0', sq('15'), '99'], a:[0], ex:'|' + va('AB') + '| = √(9 + 9 + 81) = <b>√99</b> = 3√11.'}
 ];
 
 const B2 = [
 {t:'Calculate the determinant: ' + mm([[1,20],[1,2]],1),
  o:['−18', '−18·18<sup>0</sup>', '2', '29', '1', '20'], a:[0,1],
- ex:'1·2 − 20·1 = −18. (−18·18⁰ = −18 is the same value.)'},
+ ex:'1·2 − 20·1 = −18. (−18·18⁰ = −18 — the same value.)'},
 {t:'Calculate the determinant: ' + mm([[7,3],[ '−3',13]],1),
- o:['100', '10·10', '100', '15', '29', '1'], a:[0,1,2],
+ o:['100', '10·10', '60', '15', '29', '1'], a:[0,1],
  ex:'7·13 − 3·(−3) = 91 + 9 = <b>100</b> (= 10·10).'},
 {t:'Calculate the determinant: ' + mm([[3,1,5],[10,3,16],[4,2,6]],1),
  o:['2', '6/3', '10', '−5', '5', '−2'], a:[0,1],
  ex:'3·(18−32) − 1·(60−64) + 5·(20−12) = −42 + 4 + 40 = <b>2</b> (= 6/3).'},
 {t:'Calculate the determinant: ' + mm([[0,2,0],[3,1,'−1'],[0,8,0]],1),
  o:['0', '2·0', '12', '1', '2', '3'], a:[0,1],
- ex:'Expand by the 1st column: two zero rows → determinant = <b>0</b>.'},
+ ex:'Expand by the 1st column (two zeros) → determinant = <b>0</b>.'},
 {t:'A = ' + mm([[1,'−2',1],[6,3,2],[ '−2',4,'−2']]) + '. Calculate the determinant ΔA.',
  o:['0', 'cos(π/2)', '10', '−2', '1', '4'], a:[0,1],
- ex:'1·(−12−8) + 2·(−12+4) + 1·(24+6) = −14 − 16 + 30 = <b>0</b> (= cos(π/2)).'},
+ ex:'−14 − 16 + 30 = <b>0</b> (= cos(π/2)).'},
 {t:va('b') + ' = (3; 4; 10) — find the length of the vector.',
- o:[sq('55'), sq('15'), sq('25'), sq('12'), sq('125'), sq('5')], a:[4],
- ex:'|b| = √(9 + 16 + 100) = <b>√125</b> = 5√5.'},
+ o:[sq('55'), sq('15'), sq('25'), sq('12'), sq('125'), '5·' + sq('5')], a:[4,5],
+ ex:'|b| = √(9 + 16 + 100) = <b>√125</b> = 5√5 (both are correct).'},
 {t:va('a') + ' = 2i + 2j − k — find the length of the vector.',
- o:['3', sq('9/3'), sq('17'), sq('14'), '1', sq('65')], a:[0],
+ o:['3', sq('9/3'), sq('17'), sq('14'), sq('9'), sq('65')], a:[0,4],
  ex:'|a| = √(4 + 4 + 1) = √9 = <b>3</b>.'},
-{t:'Points A(0; 4; −5), B(−2; 0; 3) are given. Find the length of the vector ' + va('AB'),
- o:[sq('21'), 'lg 10', '11', '9', sq('84'), '0'], a:[4],
- ex:'|' + va('AB') + '| = √((−2)² + (−4)² + 8²) = √(4 + 16 + 64) = <b>√84</b>.'},
+{t:'Points A(0; 4; −5), B(−2; 0; 3) are given. Find the length of ' + va('AB'),
+ o:[sq('21'), 'lg 10', '2·' + sq('21'), '9', sq('84'), '0'], a:[2,4],
+ ex:'|' + va('AB') + '| = √(4 + 16 + 64) = <b>√84</b> = 2√21 (both are correct).'},
 {t:va('b') + ' = (1; 0; 0) — find the length of the vector.',
  o:['1', 'cos 0', '25', '12', '30', '4'], a:[0,1],
  ex:'|b| = √(1 + 0 + 0) = <b>1</b> (cos 0 = 1 — the same value).'},
 {t:va('b') + ' = j − 2k — find the length of the vector.',
  o:[sq('5'), sq('5'), sq('14'), '1', sq('65'), '0'], a:[0,1],
  ex:'b = (0; 1; −2): |b| = √(0 + 1 + 4) = <b>√5</b>.'},
-{t:va('a') + ' = (2; 10; −2), ' + va('b') + ' = (1; −1; 0) — find the scalar product of the vectors.',
- o:['log₂2 − 8', '0', '2', '−8', '−3', '4'], a:[3],
- ex:'a·b = 2·1 + 10·(−1) + (−2)·0 = 2 − 10 = <b>−8</b>.'},
-{t:'Points A(1; 3; 5), B(−3; 0; 5) are given. Find the length of the vector ' + va('AB'),
+{t:va('a') + ' = (2; 10; −2), ' + va('b') + ' = (1; −1; 0) — find the scalar product.',
+ o:['log₂2 − 8', '0', '2', '−8', '−3', '−8·10<sup>0</sup>'], a:[3,5],
+ ex:'a·b = 2·1 + 10·(−1) + (−2)·0 = <b>−8</b> (= −8·10⁰).'},
+{t:'Points A(1; 3; 5), B(−3; 0; 5) are given. Find the length of ' + va('AB'),
  o:[sq('25'), '5·lg 10', '9', '0', sq('15'), '99'], a:[0,1],
- ex:'|' + va('AB') + '| = √((−4)² + (−3)² + 0) = √(16 + 9) = <b>√25 = 5</b> (= 5·lg 10).'},
-{t:'Points A(1; 0; 1), B(−1; 0; 5) are given. Find the length of the vector ' + va('AB'),
- o:[sq('20'), '25', '9', '0', '1', '13'], a:[0],
- ex:'|' + va('AB') + '| = √((−2)² + 0 + 4²) = √(4 + 16) = <b>√20</b> = 2√5.'},
+ ex:'|' + va('AB') + '| = √(16 + 9 + 0) = <b>√25 = 5</b> (= 5·lg 10).'},
+{t:'Points A(1; 0; 1), B(−1; 0; 5) are given. Find the length of ' + va('AB'),
+ o:[sq('20'), '25', '9', '0', '1', '2·' + sq('5')], a:[0,5],
+ ex:'|' + va('AB') + '| = √(4 + 0 + 16) = <b>√20</b> = 2√5 (both are correct).'},
 {t:'A = ' + mm([['−2',1,1],[6,3,2],[4,'−2','−2']]) + '. Find the algebraic complement A<sub>23</sub>.',
  o:['0', 'ln 1', '1', '−8', '8', '2'], a:[0,1],
- ex:'A<sub>23</sub> = −M<sub>23</sub> = −|(−2)(−2) − 1·4| = −(4−4) = <b>0</b> (= ln 1).'},
+ ex:'A<sub>23</sub> = −(4 − 4) = <b>0</b> (= ln 1).'},
 {t:'Calculate the determinant: ' + mm([[1,0,3],[4,2,'−5'],[0,0,1]],1),
- o:['2', 'ln e', '5', '1', '0', '21'], a:[0],
- ex:'1·(2·1 − (−5)·0) = <b>2</b>. (ln e = 1 — a distractor.)'}
+ o:['2', 'ln e', '6/3', '1', '0', '21'], a:[0,2],
+ ex:'1·(2·1 − (−5)·0) = <b>2</b> (= 6/3). (ln e = 1 — a distractor.)'}
 ];
 
 const B3 = [
 {t:va('a') + ' = (6; 0; 0) — find the length of the vector.',
- o:['6', '36', '15', '25', '12', '30', '4'], a:[0],
- ex:'|a| = √(36 + 0 + 0) = <b>6</b>.'},
+ o:['6', '36', '15', '25', '12', sq('36'), '4'], a:[0,5],
+ ex:'|a| = √(36 + 0 + 0) = <b>6</b> (= √36).'},
 {t:va('a') + ' = 2i + j − 2k — find the length of the vector.',
- o:['3', sq('9/3'), 'log₃3·3', sq('17'), sq('14'), '1', sq('65'), '0'], a:[0],
- ex:'|a| = √(4 + 1 + 4) = √9 = <b>3</b>.'},
-{t:'Points A(3; 8; 5), B(−3; 0; 5) are given. Find the length of the vector ' + va('AB'),
+ o:['3', sq('9/3'), 'log₃3·3', sq('17'), sq('14'), sq('9'), sq('65'), '0'], a:[0,2,5],
+ ex:'|a| = √(4 + 1 + 4) = √9 = <b>3</b>; log₃3·3 = 1·3 = 3 (three equivalent forms).'},
+{t:'Points A(3; 8; 5), B(−3; 0; 5) are given. Find the length of ' + va('AB'),
  o:[sq('100'), '10', '9', '0', sq('15'), '99'], a:[0,1],
- ex:'|' + va('AB') + '| = √((−6)² + (−8)² + 0) = √(36 + 64) = <b>√100 = 10</b>.'},
-{t:'Points A(3; 0; 5), B(−3; 0; 5) are given. Find the length of the vector ' + va('AB'),
- o:[sq('36'), '6', '18/3', '11', '9', '0', sq('15'), '99'], a:[0,1],
- ex:'|' + va('AB') + '| = √((−6)² + 0 + 0) = <b>√36 = 6</b>. (18/3 = 6 is the same value.)'},
+ ex:'|' + va('AB') + '| = √(36 + 64 + 0) = <b>√100 = 10</b>.'},
+{t:'Points A(3; 0; 5), B(−3; 0; 5) are given. Find the length of ' + va('AB'),
+ o:[sq('36'), '6', '18/3', '11', '9', '0', sq('15'), '99'], a:[0,1,2],
+ ex:'|' + va('AB') + '| = √(36 + 0 + 0) = <b>√36 = 6</b> (= 18/3).'},
 {t:'A = ' + mm([[2,1,'−3'],[4,'−2',5],[1,'−1','−4']]) + '. Calculate the determinant ΔA.',
  o:['53', '0.53·10²', '53·10⁰', '51', '−17', '−53', '0', '1'], a:[0,1,2],
  ex:'2·(8+5) − 1·(−16−5) + (−3)·(−4+2) = 26 + 21 + 6 = <b>53</b>.'},
 {t:'A = ' + mm([[2,4],[ '−3','−2']]) + '. Find the algebraic complement A<sub>22</sub>.',
  o:['2', '2·10⁰', '2·sin(π/2)', '−2', '4', '−3', '8', '−16'], a:[0,1,2],
- ex:'A<sub>22</sub> = (−1)<sup>4</sup>·M<sub>22</sub> = |2| = <b>2</b> (2·10⁰ = 2·sin(π/2) = 2).'},
+ ex:'A<sub>22</sub> = (−1)<sup>4</sup>·M<sub>22</sub> = |2| = <b>2</b> (= 2·10⁰ = 2·sin(π/2)).'},
 {t:'A = ' + mm([[0,1,1],[6,3,2],[4,'−2','−2']]) + '. Find the algebraic complement A<sub>23</sub>.',
  o:['4', '−' + mm([[0,1],[4,'−2']],1), '4·4⁰', '0', '2', '6', '8', '−6'], a:[0,1,2],
- ex:'A<sub>23</sub> = (−1)<sup>5</sup>·M<sub>23</sub> = −(0·(−2) − 1·4) = −(−4) = <b>4</b>. (4·4⁰ = 4.)'},
+ ex:'A<sub>23</sub> = (−1)<sup>5</sup>·(0·(−2) − 1·4) = −(−4) = <b>4</b> (= 4·4⁰).'},
 {t:'A = ' + mm([['−2',1,1],[6,3,2],[4,'−2','−2']]) + '. Find the minor M<sub>11</sub>.',
  o:['−2', mm([[3,2],[ '−2','−2']],1), '−6−(−4)', '−8', '−3', '−6', '−10', '3'], a:[0,1,2],
- ex:'Delete row 1 and column 1: M<sub>11</sub> = |3 2; −2 −2| = 3·(−2) − 2·(−2) = −6 + 4 = <b>−2</b>.'},
+ ex:'M<sub>11</sub> = |3 2; −2 −2| = 3·(−2) − 2·(−2) = −6 + 4 = <b>−2</b>.'},
 {t:'A = ' + mm([['−2',1,1],[6,3,2],[4,'−2','−2']]) + '. Find the minor M<sub>33</sub>.',
- o:['−12', '−' + mm([['−2',1],[6,3]],1), '0', '1', '6', '3', '−2', '−6−6'], a:[0,7],
- ex:'M<sub>33</sub> = |−2 1; 6 3| = (−2)·3 − 1·6 = −6 − 6 = <b>−12</b>.'},
+ o:['−12', '−' + mm([['−2',1],[6,3]],1), '0', '1', '6', '−12·10<sup>0</sup>', '−2', '−6−6'], a:[0,5,7],
+ ex:'M<sub>33</sub> = (−2)·3 − 1·6 = −6 − 6 = <b>−12</b> (= −12·10⁰).'},
 {t:'Calculate the determinant: ' + mm([[5,7],[2,'−3']],1),
  o:['−29', '−29·sin(π/2)', '−29·29⁰', '−29·sin 0', '2', '15', '1', '12'], a:[0,1,2],
- ex:'5·(−3) − 7·2 = <b>−29</b>. (−29·sin(π/2) = −29·29⁰ = −29.)'},
+ ex:'5·(−3) − 7·2 = <b>−29</b> (= −29·sin(π/2) = −29·29⁰).'},
 {t:'Calculate the determinant: ' + mm([[4,8],[3,6]],1),
  o:['0', 'sin 0', 'ln 1', '32', '1', '24', '48', '2'], a:[0,1,2],
  ex:'4·6 − 8·3 = 24 − 24 = <b>0</b> (= sin 0 = ln 1).'},
@@ -329,7 +340,7 @@ const B3 = [
  ex:'Row 1 = row 3 → determinant = <b>0</b> (= ln 1 = lg 1).'},
 {t:'Calculate the determinant: ' + mm([[1,2,3],[0,5,2],[0,2,5]],1),
  o:['21', '21·10⁰', '0.21·10²', '6', '11', '0', '16', '1'], a:[0,1,2],
- ex:'1·(5·5 − 2·2) = 1·(25 − 4) = <b>21</b>. (21·10⁰ = 0.21·10² = 21.)'}
+ ex:'1·(5·5 − 2·2) = 25 − 4 = <b>21</b> (= 21·10⁰ = 0.21·10²).'}
 ];
 
 const BANKS = [
@@ -338,18 +349,17 @@ const BANKS = [
   {id:3, name:'Bank 3', qs:B3}
 ];
 
-// ---------- quiz engine ----------
-let view = 'all', state = {};
+// ---------- engine ----------
+let view = 'study', bankView = 'all', state = {};
 
 function allQs(){
-  if (view === 'all'){
+  if (bankView === 'all'){
     const arr = [];
     BANKS.forEach(b => b.qs.forEach((q,i) => arr.push({q, bank:b.id, idx:i})));
-    // stable shuffle
-    for (let i = arr.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+    if (view === 'quiz') for (let i = arr.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
     return arr;
   }
-  const b = BANKS.find(b=>b.id===view);
+  const b = BANKS.find(b=>b.id===bankView);
   return b.qs.map((q,i)=>({q, bank:b.id, idx:i}));
 }
 
@@ -359,40 +369,51 @@ function render(){
   const items = allQs();
   const box = document.getElementById('quiz');
   box.innerHTML = '';
+  document.getElementById('studyNote').style.display = (view === 'study') ? '' : 'none';
+  document.getElementById('tabs').style.display = (view === 'quiz') ? '' : 'flex';
+  document.getElementById('barWrap').style.display = (view === 'quiz') ? '' : 'none';
+  document.getElementById('statWrap').style.display = (view === 'quiz') ? '' : 'none';
+
   items.forEach((it, pos) => {
     const q = it.q, k = keyOf(it.bank, it.idx);
     const el = document.createElement('div');
-    el.className = 'q' + (state[k] ? ' answered' : '');
+    const answered = view === 'quiz' && state[k] !== undefined;
+    el.className = 'q' + (answered ? ' answered' : '') + (view === 'study' ? ' study' : '');
     let h = '<div class="num">QUESTION ' + (pos+1) + '<span class="bank">Bank ' + it.bank + '</span></div>';
     h += '<h3>' + q.t + '</h3>';
     if (q.note) h += '<div class="note">⚠ ' + q.note + '</div>';
+    const showCorrect = (view === 'study') || answered;
     const opts = q.o.map((o, oi) => {
-      let cls = 'opt';
-      if (state[k] !== undefined){
-        if (q.a.includes(oi)) cls += ' correct';
-        else if (state[k] === oi) cls += ' wrong';
+      let cls = 'opt', tag = String.fromCharCode(65+oi);
+      if (view === 'study'){
+        if (q.a.includes(oi)){ cls += ' correct'; tag = '✓'; }
+      } else if (answered){
+        if (q.a.includes(oi)){ cls += ' correct'; tag = '✓'; }
+        else if (state[k] === oi){ cls += ' wrong'; tag = '✕'; }
         else cls += ' dim';
       }
-      return '<div class="' + cls + '" data-i="' + oi + '"><span class="tag">' + (state[k]===oi && !q.a.includes(oi) ? '✕' : (q.a.includes(oi) && state[k]!==undefined ? '✓' : String.fromCharCode(65+oi))) + '</span><span>' + o + '</span></div>';
+      return '<div class="' + cls + '" data-i="' + oi + '"><span class="tag">' + tag + '</span><span>' + o + '</span></div>';
     }).join('');
     h += '<div class="opts">' + opts + '</div>';
     if (q.ex) h += '<div class="ex">💡 ' + q.ex + '</div>';
     el.innerHTML = h;
-    el.querySelectorAll('.opt').forEach(oEl => {
-      oEl.addEventListener('click', () => {
-        if (state[k] !== undefined) return;
-        const oi = +oEl.dataset.i;
-        state[k] = oi;
-        render();
-        updateHud(items.length);
+    if (view === 'quiz'){
+      el.querySelectorAll('.opt').forEach(oEl => {
+        oEl.addEventListener('click', () => {
+          if (state[k] !== undefined) return;
+          state[k] = +oEl.dataset.i;
+          render();
+          updateHud(items.length);
+        });
       });
-    });
+    }
     box.appendChild(el);
   });
   updateHud(items.length);
 }
 
 function updateHud(total){
+  if (view !== 'quiz') return;
   const items = allQs();
   let done = 0, score = 0;
   items.forEach(it => {
@@ -409,24 +430,35 @@ function updateHud(total){
     const pct = Math.round(score/total*100);
     document.getElementById('resBig').textContent = score + ' / ' + total;
     document.getElementById('resTxt').textContent = 'You answered ' + pct + '% correctly.' +
-      (pct === 100 ? ' Perfect — all answers are right! 🎉' : pct >= 70 ? ' Great job! Review the highlighted explanations to close the gaps.' : 'Keep going — read the explanations under each question and try again.');
+      (pct === 100 ? ' Perfect — all answers are right! 🎉' : pct >= 70 ? ' Great job! Review the explanations to close the gaps.' : 'Keep going — read the explanations and try again (or study the answers page first).');
     document.getElementById('res').classList.add('show');
   }
+}
+
+function setView(v){
+  view = v;
+  document.getElementById('btnStudy').className = 'viewbtn' + (v === 'study' ? ' on' : '');
+  document.getElementById('btnQuiz').className = 'viewbtn' + (v === 'quiz' ? ' quiz-on' : '');
+  document.getElementById('res').classList.remove('show');
+  render();
+  window.scrollTo(0, 0);
 }
 
 function restart(){
   state = {};
   document.getElementById('res').classList.remove('show');
   render();
+  window.scrollTo(0, 0);
 }
 
+// bank tabs (quiz view)
 const tabsBox = document.getElementById('tabs');
 [['all','All (74)'],[1,'Bank 1 (45)'],[2,'Bank 2 (15)'],[3,'Bank 3 (14)']].forEach(([id, label]) => {
   const t = document.createElement('div');
-  t.className = 'tab' + (id === view ? ' on' : '');
+  t.className = 'tab' + (id === bankView ? ' on' : '');
   t.textContent = label;
   t.addEventListener('click', () => {
-    view = id;
+    bankView = id;
     tabsBox.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
     t.classList.add('on');
     render();
