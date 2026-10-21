@@ -352,13 +352,20 @@ const BANKS = [
 ];
 
 // ---------- engine ----------
-let view = 'study', bankView = 'all', state = {};
+let view = 'study', bankView = 'all', state = {}, shuffled = null;
 
 function allQs(){
   if (bankView === 'all'){
+    if (view === 'quiz'){
+      if (!shuffled){
+        shuffled = [];
+        BANKS.forEach(b => b.qs.forEach((q,i) => shuffled.push({q, bank:b.id, idx:i})));
+        for (let i = shuffled.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]; }
+      }
+      return shuffled;
+    }
     const arr = [];
     BANKS.forEach(b => b.qs.forEach((q,i) => arr.push({q, bank:b.id, idx:i})));
-    if (view === 'quiz') for (let i = arr.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
     return arr;
   }
   const b = BANKS.find(b=>b.id===bankView);
@@ -465,6 +472,7 @@ function setView(v){
 
 function restart(){
   state = {};
+  shuffled = null;
   document.getElementById('res').classList.remove('show');
   render();
   window.scrollTo(0, 0);
