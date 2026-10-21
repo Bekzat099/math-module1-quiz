@@ -35,10 +35,11 @@
   .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--acc),var(--good)); width:0%; transition:.3s}
   .study-note{background:rgba(46,204,143,.08); border:1px solid rgba(46,204,143,.35); color:var(--good);
               border-radius:10px; padding:10px 14px; font-size:13.5px; margin-bottom:14px}
-  .q{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 16px 14px; margin-bottom:14px; animation:pop .25s}
+  .q{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 16px 14px; margin-bottom:14px; animation:pop .25s; scroll-margin-top:70px}
   @keyframes pop{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
   .q .num{font-size:12px; color:var(--acc); font-weight:700; letter-spacing:.6px}
   .q .bank{font-size:11px; color:var(--mut); border:1px solid var(--line); border-radius:10px; padding:1px 8px; margin-left:8px; vertical-align:1px}
+  .multi{font-size:11px; color:var(--gold); border:1px solid rgba(255,200,87,.45); border-radius:10px; padding:1px 8px; margin-left:8px; vertical-align:1px; white-space:nowrap}
   .q h3{font-size:16.5px; margin:8px 0 4px; font-weight:600}
   .q .task{margin:4px 0 6px; font-size:15px}
   .note{font-size:12.5px; color:var(--gold); background:rgba(255,200,87,.08); border:1px dashed rgba(255,200,87,.4);
@@ -100,7 +101,7 @@
   </div>
 
   <div id="studyNote" class="study-note">📗 <b>Режим подготовки:</b> правильные варианты выделены зелёным, под каждым вопросом — решение.
-  Чтобы проверить себя — нажми «✏️ Куиз».</div>
+  Правило: 5 вариантов → 1 ответ · 6 вариантов → 2 ответа · 8 вариантов → 3 ответа. Чтобы проверить себя — нажми «✏️ Куиз»: каждый выбранный вариант сразу подсвечивается зелёным (верно) или красным (ошибка).</div>
 
   <div id="quiz"></div>
 
@@ -377,22 +378,30 @@ function render(){
 
   items.forEach((it, pos) => {
     const q = it.q, k = keyOf(it.bank, it.idx);
+    const st = state[k];
+    const done = !!(view === 'quiz' && st && st.done);
     const el = document.createElement('div');
-    const answered = view === 'quiz' && state[k] !== undefined;
-    el.className = 'q' + (answered ? ' answered' : '') + (view === 'study' ? ' study' : '');
-    let h = '<div class="num">QUESTION ' + (pos+1) + '<span class="bank">Bank ' + it.bank + '</span></div>';
+    el.className = 'q' + (done ? ' answered' : '') + (view === 'study' ? ' study' : '');
+    let badge = '';
+    if (view === 'quiz' && q.a.length > 1){
+      const found = st ? q.a.filter(i => st.picks[i] === 'good').length : 0;
+      badge = '<span class="multi">Выбери ' + q.a.length + ' из ' + q.o.length + (st ? ' · ✓ ' + found + '/' + q.a.length : '') + '</span>';
+    }
+    let h = '<div class="num">QUESTION ' + (pos+1) + '<span class="bank">Bank ' + it.bank + '</span>' + badge + '</div>';
     h += '<h3>' + q.t + '</h3>';
     if (q.m) h += '<div class="task">' + q.m + '</div>';
     if (q.note) h += '<div class="note">⚠ ' + q.note + '</div>';
-    const showCorrect = (view === 'study') || answered;
     const opts = q.o.map((o, oi) => {
       let cls = 'opt', tag = String.fromCharCode(65+oi);
       if (view === 'study'){
         if (q.a.includes(oi)){ cls += ' correct'; tag = '✓'; }
-      } else if (answered){
-        if (q.a.includes(oi)){ cls += ' correct'; tag = '✓'; }
-        else if (state[k] === oi){ cls += ' wrong'; tag = '✕'; }
-        else cls += ' dim';
+      } else if (st){
+        if (st.picks[oi] === 'good'){ cls += ' correct'; tag = '✓'; }
+        else if (st.picks[oi] === 'bad'){ cls += ' wrong'; tag = '✕'; }
+        else if (st.done){
+          if (q.a.includes(oi)){ cls += ' correct'; tag = '✓'; }
+          else cls += ' dim';
+        }
       }
       return '<div class="' + cls + '" data-i="' + oi + '"><span class="tag">' + tag + '</span><span>' + o + '</span></div>';
     }).join('');
@@ -402,10 +411,18 @@ function render(){
     if (view === 'quiz'){
       el.querySelectorAll('.opt').forEach(oEl => {
         oEl.addEventListener('click', () => {
-          if (state[k] !== undefined) return;
-          state[k] = +oEl.dataset.i;
+          const oi = +oEl.dataset.i;
+          if (!state[k]) state[k] = { picks: {}, done: false };
+          const s = state[k];
+          if (s.done || s.picks[oi] !== undefined) return;
+          s.picks[oi] = q.a.includes(oi) ? 'good' : 'bad';
+          if (q.a.length === 1 || q.a.every(i => s.picks[i] === 'good')) s.done = true;
           render();
           updateHud(items.length);
+          if (s.done){
+            const next = document.querySelector('#quiz .q:not(.answered)');
+            if (next) next.scrollIntoView({behavior:'smooth', block:'start'});
+          }
         });
       });
     }
@@ -419,10 +436,10 @@ function updateHud(total){
   const items = allQs();
   let done = 0, score = 0;
   items.forEach(it => {
-    const k = keyOf(it.bank, it.idx);
-    if (state[k] !== undefined){
+    const st = state[keyOf(it.bank, it.idx)];
+    if (st && st.done){
       done++;
-      if (it.q.a.includes(state[k])) score++;
+      if (!Object.values(st.picks).some(v => v === 'bad')) score++;
     }
   });
   document.getElementById('score').textContent = score;
